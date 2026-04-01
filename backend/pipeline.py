@@ -2,7 +2,8 @@ import os
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFDirectoryLoader, TextLoader, DirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_groq import ChatGroq
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -14,8 +15,8 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 CHROMA_DB_DIR = os.path.join(os.path.dirname(__file__), "chroma_db")
 
 # Initialize models
-embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-llm = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
+embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+llm = ChatGroq(model_name="llama-3.1-8b-instant", temperature=0.3)
 
 def load_and_process_documents():
     """Load PDFs and text files from the data directory and ingest into vector db."""
