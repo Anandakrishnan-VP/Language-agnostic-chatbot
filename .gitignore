@@ -1,0 +1,29 @@
+# OS generated files
+.DS_Store
+Thumbs.db
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.*
+
+# Python
+backend/venv/
+backend/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables (CRITICAL)
+backend/.env
+.env
+
+# Chroma Vector Database (Can be huge)
+backend/chroma_db/
+backend/data/
+
