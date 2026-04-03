@@ -13,6 +13,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, DollarSign, Award, Calendar, FileText, Trash2, Sun, Moon } from "lucide-react";
+import { translations } from "@/utils/translations";
 
 interface Props {
   language: string;
@@ -23,33 +24,42 @@ interface Props {
   onToggleTheme: () => void;
 }
 
-const quickActions = [
-  { label: "Fees Info", query: "Tell me about the fee structure", icon: DollarSign },
-  { label: "Scholarships", query: "What scholarships are available?", icon: Award },
-  { label: "Academic Calendar", query: "Show me the academic calendar", icon: Calendar },
-  { label: "Policies", query: "What are the campus policies?", icon: FileText },
-];
-
-const languages = [
-  { value: "en", label: "English" },
-  { value: "hi", label: "हिन्दी (Hindi)" },
-  { value: "ml", label: "മലയാളം (Malayalam)" },
-  { value: "ta", label: "தமிழ் (Tamil)" },
-];
-
 const AppSidebar = ({ language, onLanguageChange, onQuickAction, onClearChat, isDark, onToggleTheme }: Props) => {
+  const t = translations[language] || translations.en;
+
+  const quickActions = [
+    { label: t.feesInfo, query: "Tell me about the fee structure", icon: DollarSign },
+    { label: t.scholarships, query: "What scholarships are available?", icon: Award },
+    { label: t.calendar, query: "Show me the academic calendar", icon: Calendar },
+    { label: t.policies, query: "What are the campus policies?", icon: FileText },
+  ];
+
+  const languages = [
+    { value: "en", label: "English" },
+    { value: "hi", label: "हिन्दी (Hindi)" },
+    { value: "mr", label: "मराठी (Marathi)" },
+    { value: "bn", label: "বাংলা (Bengali)" },
+    { value: "ta", label: "தமிழ் (Tamil)" },
+    { value: "te", label: "తెలుగు (Telugu)" },
+    { value: "ml", label: "മലയാളം (Malayalam)" },
+    { value: "kn", label: "ಕನ್ನಡ (Kannada)" },
+    { value: "gu", label: "ગુજરાતી (Gujarati)" },
+    { value: "pa", label: "ਪੰਜਾਬੀ (Punjabi)" },
+    { value: "ur", label: "اردو (Urdu)" },
+  ];
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
           <GraduationCap className="h-6 w-6 text-primary" />
-          <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">Campus Assistant</span>
+          <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">{t.appName}</span>
         </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Quick Actions</SidebarGroupLabel>
+          <SidebarGroupLabel>{t.quickActions}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {quickActions.map((action) => (
@@ -65,7 +75,7 @@ const AppSidebar = ({ language, onLanguageChange, onQuickAction, onClearChat, is
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Language</SidebarGroupLabel>
+          <SidebarGroupLabel>{t.language}</SidebarGroupLabel>
           <SidebarGroupContent className="px-2 group-data-[collapsible=icon]:hidden">
             <Select value={language} onValueChange={onLanguageChange}>
               <SelectTrigger className="w-full">
@@ -87,11 +97,11 @@ const AppSidebar = ({ language, onLanguageChange, onQuickAction, onClearChat, is
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={onToggleTheme} className="flex-1">
             {isDark ? <Sun className="mr-1 h-4 w-4" /> : <Moon className="mr-1 h-4 w-4" />}
-            {isDark ? "Light" : "Dark"}
+            {isDark ? t.light : t.dark}
           </Button>
           <Button variant="outline" size="sm" onClick={onClearChat} className="flex-1">
             <Trash2 className="mr-1 h-4 w-4" />
-            Clear
+            {t.clear}
           </Button>
         </div>
       </SidebarFooter>

@@ -1,30 +1,74 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { translations } from "@/utils/translations";
 
 export interface ChatMessage {
   id: string;
   role: "user" | "bot";
   content: string;
   timestamp: Date;
+  isTranslating?: boolean;
 }
 
-const DUMMY_RESPONSES: Record<string, string> = {
-  en: "I'm currently in demo mode. Once the backend is connected, I'll be able to help you with campus-related queries about fees, scholarships, academic calendars, and more!",
-  hi: "मैं वर्तमान में डेमो मोड में हूँ। बैकएंड कनेक्ट होने पर, मैं शुल्क, छात्रवृत्ति, शैक्षणिक कैलेंडर और अन्य परिसर संबंधित प्रश्नों में आपकी सहायता कर सकूँगा!",
-  ml: "ഞാൻ ഇപ്പോൾ ഡെമോ മോഡിലാണ്. ബാക്കെൻഡ് കണക്റ്റ് ചെയ്തുകഴിഞ്ഞാൽ, ഫീസ്, സ്കോളർഷിപ്പ്, അക്കാദമിക് കലണ്ടർ എന്നിവയെക്കുറിച്ചുള്ള ചോദ്യങ്ങൾക്ക് ഞാൻ സഹായിക്കാം!",
-  ta: "நான் தற்போது டெமோ பயன்முறையில் உள்ளேன். பின்னணி இணைக்கப்பட்டதும், கட்டணங்கள், உதவித்தொகைகள், கல்வி நாட்காட்டி போன்றவை குறித்த கேள்விகளுக்கு உதவ முடியும்!",
-};
-
 export function useChatMessages() {
+  const [language, setLanguage] = useState("en");
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
       role: "bot",
-      content: "👋 Hello! I'm your Campus Assistant. Ask me about fees, scholarships, academic calendar, policies, and more!",
+      content: translations.en.welcome,
       timestamp: new Date(),
     },
   ]);
-  const [language, setLanguage] = useState("en");
   const [isTyping, setIsTyping] = useState(false);
+
+  // Update welcome message and retranslate history when language changes
+  useEffect(() => {
+    // 1. Update the welcome message first (instant from dictionary)
+    setMessages((prev) => 
+      prev.map((msg) => 
+        msg.id === "welcome" 
+          ? { ...msg, content: (translations[language] || translations.en).welcome }
+          : msg
+      )
+    );
+
+    // 2. Retranslate the rest of the history (async from API)
+    const retranslateHistory = async () => {
+      const messagesToTranslate = messages.filter(m => m.id !== "welcome");
+      if (messagesToTranslate.length === 0) return;
+
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+      // Set all to isTranslating first
+      setMessages((prev) => 
+        prev.map((p) => p.id !== "welcome" ? { ...p, isTranslating: true } : p)
+      );
+
+      // Map through messages and update them one by one
+      for (const msg of messagesToTranslate) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/translate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: msg.content, target_lang: language }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setMessages((prev) => 
+              prev.map((p) => p.id === msg.id ? { ...p, content: data.translated_text, isTranslating: false } : p)
+            );
+          }
+        } catch (error) {
+          console.error("Retranslation error:", error);
+          setMessages((prev) => 
+            prev.map((p) => p.id === msg.id ? { ...p, isTranslating: false } : p)
+          );
+        }
+      }
+    };
+
+    retranslateHistory();
+  }, [language]);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -37,8 +81,11 @@ export function useChatMessages() {
       setMessages((prev) => [...prev, userMsg]);
       setIsTyping(true);
 
+      const t = translations[language] || translations.en;
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
       try {
-        const res = await fetch("http://localhost:8000/chat", {
+        const res = await fetch(`${API_BASE_URL}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: content, language }),
@@ -55,12 +102,12 @@ export function useChatMessages() {
         };
         setMessages((prev) => [...prev, botMsg]);
       } catch {
-        // Fallback dummy response
+        // Fallback response in the correct language
         await new Promise((r) => setTimeout(r, 1000));
         const botMsg: ChatMessage = {
           id: crypto.randomUUID(),
           role: "bot",
-          content: DUMMY_RESPONSES[language] || DUMMY_RESPONSES.en,
+          content: t.welcome, // Using welcome as a fallback if API is down
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, botMsg]);
@@ -72,15 +119,16 @@ export function useChatMessages() {
   );
 
   const clearChat = useCallback(() => {
+    const t = translations[language] || translations.en;
     setMessages([
       {
         id: "welcome",
         role: "bot",
-        content: "👋 Hello! I'm your Campus Assistant. Ask me about fees, scholarships, academic calendar, policies, and more!",
+        content: t.welcome,
         timestamp: new Date(),
       },
     ]);
-  }, []);
+  }, [language]);
 
   return { messages, language, setLanguage, sendMessage, clearChat, isTyping };
 }

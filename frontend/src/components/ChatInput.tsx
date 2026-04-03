@@ -2,14 +2,17 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
+import { translations } from "@/utils/translations";
 
 interface Props {
   onSend: (message: string) => void;
   disabled?: boolean;
+  language: string;
 }
 
-const ChatInput = ({ onSend, disabled }: Props) => {
+const ChatInput = ({ onSend, disabled, language }: Props) => {
   const [value, setValue] = useState("");
+  const t = translations[language] || translations.en;
 
   const handleSend = () => {
     const trimmed = value.trim();
@@ -25,7 +28,7 @@ const ChatInput = ({ onSend, disabled }: Props) => {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-          placeholder="Ask about fees, scholarships, schedules..."
+          placeholder={t.placeholder}
           disabled={disabled}
           className="flex-1"
         />

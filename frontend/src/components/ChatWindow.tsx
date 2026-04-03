@@ -9,9 +9,10 @@ interface Props {
   messages: ChatMessage[];
   isTyping: boolean;
   onSend: (message: string) => void;
+  language: string;
 }
 
-const ChatWindow = ({ messages, isTyping, onSend }: Props) => {
+const ChatWindow = ({ messages, isTyping, onSend, language }: Props) => {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,7 +30,7 @@ const ChatWindow = ({ messages, isTyping, onSend }: Props) => {
           <div ref={bottomRef} />
         </div>
       </ScrollArea>
-      <ChatInput onSend={onSend} disabled={isTyping} />
+      <ChatInput onSend={onSend} disabled={isTyping} language={language} />
     </div>
   );
 };

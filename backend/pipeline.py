@@ -8,14 +8,18 @@ from langchain_community.vectorstores import Chroma
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
+from logger import log_chat
 
 load_dotenv()
+
+# Disable ChromaDB telemetry to stop background errors
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 CHROMA_DB_DIR = os.path.join(os.path.dirname(__file__), "chroma_db")
 
-# Initialize models
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+# Initialize models - Upgraded to specialized multilingual model for Pan-India support
+embeddings = HuggingFaceEmbeddings(model_name="paraphrase-multilingual-MiniLM-L12-v2")
 llm = ChatGroq(model_name="llama-3.1-8b-instant", temperature=0.3)
 
 def load_and_process_documents():
@@ -56,7 +60,7 @@ def get_retriever():
     if vectorstore is None:
         return None
         
-    return vectorstore.as_retriever(search_kwargs={"k": 4})
+    return vectorstore.as_retriever(search_kwargs={"k": 5})
 
 # Setup the RAG Chain
 retriever = get_retriever()
@@ -65,11 +69,24 @@ system_prompt = (
     "You are a helpful and polite virtual assistant for the university/college campus. "
     "You answer student queries related to fees, scholarships, policies, and schedules. "
     "Respond to the student in the EXACT SAME LANGUAGE they used to ask the question. "
-    "For instance, if they ask in Hindi, reply in Hindi. If in English, reply in English. "
-    "If in Marathi, reply in Marathi, and so on. "
+    "\n\n"
+    "### IMPORTANT: Support for Romanized Script ###\n"
+    "Students may type regional languages using English characters (e.g., 'Fees kiti ahet?' for Marathi "
+    "or 'Fees kitni hai?' for Hindi). You MUST recognize these transliterated inputs and respond "
+    "in the same regional language and script requested by the user (or English script if they prefer). "
+    "\n\n"
+    "Supported languages include: English, Hindi (हिंदी), Marathi (मराठी), Bengali (বাংলা), "
+    "Tamil (தமிழ்), Telugu (తెలుగు), Malayalam (മലയാളം), Kannada (ಕನ್ನಡ), Gujarati (ગુજરાતી), "
+    "Punjabi (ਪੰਜਾਬੀ), Urdu (اردو), Odia (ଓଡ଼ିଆ), and Assamese (অসমীয়া). "
+    "\n\n"
     "Use the following pieces of retrieved context to answer the question. "
-    "If you don't know the answer or the context doesn't have the information, state that clearly "
-    "and advise the student to contact the administrative office for human support. "
+    "If the answer is in the context, provide it clearly. "
+    "If the context contains contact emails or phone numbers for the relevant administrative office, "
+    "include them in your response as part of the human support fallback. "
+    "\n\n"
+    "If the context does NOT have the information, state that clearly and advise the student "
+    "to contact the administrative office immediately for support. Use any contact details "
+    "found in the context if available. "
     "Keep answers clear, concise, and structured.\n\n"
     "Context: {context}"
 )
@@ -85,7 +102,7 @@ if retriever:
     question_answer_chain = create_stuff_documents_chain(llm, prompt)
     rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
-def get_answer(query: str) -> str:
+def get_answer(query: str, language: str = "en") -> str:
     """Takes a query and returns the answer using RAG."""
     global rag_chain, retriever
     
@@ -94,11 +111,11 @@ def get_answer(query: str) -> str:
         retriever = get_retriever()
         if retriever is None:
             # Fallback when no docs are uploaded yet
-            # Direct LLM call instead, letting it know it's missing docs
             response = llm.invoke([
                 ("system", system_prompt.replace("{context}", "No institutional documents have been uploaded yet.")),
                 ("human", query)
             ])
+            log_chat(query, response.content, language)
             return response.content
             
         question_answer_chain = create_stuff_documents_chain(llm, prompt)
@@ -106,6 +123,23 @@ def get_answer(query: str) -> str:
 
     if rag_chain:
         response = rag_chain.invoke({"input": query})
-        return response["answer"]
+        answer = response["answer"]
+        log_chat(query, answer, language)
+        return answer
         
-    return "The system is currently unavailable. Please contact the administrative office."
+    return "The system is currently unavailable. Please contact the administrative office. "
+
+
+def translate_text(text: str, target_lang: str) -> str:
+    """Simple translation utility using the LLM."""
+    # Mapping some internal codes to full names for better LLM performance
+    lang_map = {
+        "hi": "Hindi", "mr": "Marathi", "bn": "Bengali", "ta": "Tamil",
+        "te": "Telugu", "ml": "Malayalam", "kn": "Kannada", "gu": "Gujarati",
+        "pa": "Punjabi", "ur": "Urdu", "en": "English"
+    }
+    lang_full = lang_map.get(target_lang, target_lang)
+    
+    prompt = f"Translate the following campus-related text to {lang_full}. Maintain any technical terms or numbers as is. Return ONLY the translated text, nothing else.\n\nText: {text}"
+    response = llm.invoke(prompt)
+    return response.content

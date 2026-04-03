@@ -12,18 +12,40 @@ frontend/dist/
 frontend/.env
 frontend/.env.*
 
-# Python
+# Environment variables (CRITICAL)
+backend/.env
+.env
+.env.local
+.env.*
+
+# Python Virtual Environments
 backend/venv/
+backend/.venv/
+venv/
+.venv/
+env/
+
+# Python Cache
 backend/__pycache__/
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# Environment variables (CRITICAL)
-backend/.env
-.env
-
-# Chroma Vector Database (Can be huge)
+# Chroma Vector Database (Large files)
 backend/chroma_db/
 backend/data/
 
+# Chat Logs (Private history)
+backend/logs/
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
