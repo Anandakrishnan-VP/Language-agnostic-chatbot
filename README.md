@@ -57,7 +57,7 @@ graph TD
 
 ### 🌐 Live Production Demos
 The application is fully deployed and natively hosted 24/7 in the cloud. You can test it immediately without cloning the repository:
-- **Frontend UI (Vercel Edge Network):** `[Insert Your Live Vercel Link Here]`
+- **Frontend UI (Vercel Edge Network):** `[https://language-agnostic-chatbot-eta.vercel.app]`
 - **Backend API (Hugging Face 16GB Docker Space):** [https://huggingface.co/spaces/heyak/campus-backend](https://huggingface.co/spaces/heyak/campus-backend)
 
 ---
