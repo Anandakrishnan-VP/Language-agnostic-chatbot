@@ -42,12 +42,19 @@ graph TD
 
 ## 🛠️ Technology Stack
 - **Frontend:** React 18, TypeScript, Tailwind CSS, shadcn/ui.
-- **Backend:** Python 3.11, FastAPI, LangChain.
+- **Backend:** Python 3.11 (Required for library compatibility), FastAPI, LangChain.
 - **AI/ML:** Llama 3.1 (LLM), ChromaDB (Vector DB), HuggingFace (Embeddings).
+
+> [!IMPORTANT]
+> **Python Version:** This project requires **Python 3.11**. Using newer versions like Python 3.13 may cause issues with `chromadb` and `torch` dependencies.
 
 ---
 
 ## 💻 Getting Started
+
+### 📅 Current Versioning
+- **Last Updated:** 4/3/2026 (April 3rd, 2026)
+- **Status:** Hackathon MVP Ready
 
 ### 1. Setup Backend
 ```bash
