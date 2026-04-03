@@ -72,8 +72,10 @@ export function useChatMessages() {
 
   const sendMessage = useCallback(
     async (content: string) => {
+      const safeId = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      
       const userMsg: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: safeId(),
         role: "user",
         content,
         timestamp: new Date(),
@@ -95,7 +97,7 @@ export function useChatMessages() {
 
         const data = await res.json();
         const botMsg: ChatMessage = {
-          id: crypto.randomUUID(),
+          id: safeId(),
           role: "bot",
           content: data.response,
           timestamp: new Date(),
@@ -105,7 +107,7 @@ export function useChatMessages() {
         // Fallback response in the correct language
         await new Promise((r) => setTimeout(r, 1000));
         const botMsg: ChatMessage = {
-          id: crypto.randomUUID(),
+          id: safeId(),
           role: "bot",
           content: t.welcome, // Using welcome as a fallback if API is down
           timestamp: new Date(),

@@ -8,3 +8,4 @@ pydantic==2.6.4
 chromadb==0.4.24
 pypdf==4.1.0
 python-dotenv==1.0.1
+python-multipart==0.0.9

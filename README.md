@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🌍 Campus Assistant AI</h1>
+  <h1>🌍 Delta Force | Campus Assistant AI</h1>
   <h3>The Ultimate "Pan-India" Language-Agnostic RAG Chatbot</h3>
 </div>
 
@@ -9,41 +9,40 @@
 Campus offices handle thousands of repetitive student queries every semester regarding fees, scholarships, and schedules. A massive **communication gap** exists when students prefer regional languages like Hindi, Marathi, or Tamil, while institutional information remains buried in English PDFs.
 
 ## 🚀 The Solution
-**Campus Assistant AI** is a multilingual conversational chatbot that shatters language barriers. It dynamically reads English PDFs and circulars, then answers student queries with hyper-accurate facts in **any of the 10+ major Indian languages** using a Retrieval-Augmented Generation (RAG) architecture.
+**Campus Assistant AI** (built by Delta Force) is a multilingual conversational chatbot that shatters language barriers. It dynamically reads English PDFs and circulars, then answers student queries with hyper-accurate facts in **10+ major Indian languages** using an advanced Retrieval-Augmented Generation (RAG) architecture.
 
 ---
 
 ## 🏗️ Model Architecture
 ```mermaid
 graph TD
-    A[Student Query] --> B{Frontend App}
-    B --> C[Language Selection]
+    A[Student Query] --> B{React Frontend}
+    B -- Language Dropdown --> C[Anti-Hallucination Guard]
     C --> D[FastAPI Backend /chat]
-    D --> E[Multilingual Embedding]
-    E --> F[ChromaDB Vector Store]
-    F -- Retrieval --> G[Relevant Context]
-    G --> H[Llama 3.1 LLM via Groq]
-    H -- Generation --> I[Multilingual Response]
-    I --> B
-    D --> J[Conversation Logs]
+    D --> E[Multilingual Embedding Database]
+    E -- ChromaDB --> F[Semantic Context Retrieval]
+    F --> G[Llama 3.1 LLM via Groq]
+    G -- Native Output --> H[Multilingual Response]
+    H --> B
+    
+    I[Sidebar AI Memory UI] -. Upload / Delete .-> D
 ```
 
 ---
 
 ## ✨ Key Features
-- **🗣️ Pan-India Multilingual Support:** Native support for 10+ languages: English, Hindi, Marathi, Bengali, Tamil, Telugu, Malayalam, Kannada, Gujarati, Punjabi, and Urdu.
-- **📚 Zero-Training Ingestion:** Drag and drop PDFs/TXT circulars into `backend/data/`.
-- **⚡ Advanced RAG Pipeline:** Powered by **Llama 3.1** via Groq for sub-second responses.
+- **🛡️ Anti-Hallucination Guard:** The LLM's prompt is mathematically injected with the user's specific language dropdown choice (e.g., "You MUST respond exclusively in Tamil"), fully eliminating random "language hallucination", even if students type questions using Romanized English characters.
+- **🖥️ Dynamic Memory UI (Zero-Restart):** The frontend Sidebar features an "AI Memory" section where you can instantly Upload or Delete PDF/TXT files. The backend seamlessly injects or torches the data from the Vector DB without ever restarting the server.
+- **⚡ Quick Action Hotbars:** Pre-built chips for common institutional questions (Fees, Timings, Departments) so students with lower English literacy do not have to type.
+- **🗣️ Pan-India Support:** English, Hindi, Marathi, Bengali, Tamil, Telugu, Malayalam, Kannada, Gujarati, Punjabi, Urdu, Odia, and Assamese.
 - **💻 Multilingual Embeddings:** Uses `paraphrase-multilingual-MiniLM-L12-v2` for cross-lingual understanding.
-- **📄 Dynamic Contact Retrieval:** Automatically finds and provides office contact details from documents.
-- **📊 Conversation Logging:** Integrated logging for evaluation and future model improvement.
 
 ---
 
 ## 🛠️ Technology Stack
 - **Frontend:** React 18, TypeScript, Tailwind CSS, shadcn/ui.
 - **Backend:** Python 3.11 (Required for library compatibility), FastAPI, LangChain.
-- **AI/ML:** Llama 3.1 (LLM), ChromaDB (Vector DB), HuggingFace (Embeddings).
+- **AI/ML:** Llama 3.1 8B (LLM), ChromaDB (Vector DB), HuggingFace (Embeddings).
 
 > [!IMPORTANT]
 > **Python Version:** This project requires **Python 3.11**. Using newer versions like Python 3.13 may cause issues with `chromadb` and `torch` dependencies.
@@ -53,19 +52,31 @@ graph TD
 ## 💻 Getting Started
 
 ### 📅 Current Versioning
-- **Last Updated:** 4/3/2026 (April 3rd, 2026)
-- **Status:** Hackathon MVP Ready
+- **Last Updated:** April 3rd, 2026
+- **Status:** Hackathon MVP Ready (Delta Force Edition)
 
 ### 1. Setup Backend
 ```bash
 cd backend
 python -m venv venv
+# Activate virtual environment
+# Windows:
 .\venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
+
 pip install -r requirements.txt
 ```
-Create `.env` in `backend/` with `GROQ_API_KEY="your_key"`.
+Create `.env` in `backend/` with your API Key: `GROQ_API_KEY="your_key"`.
+*Note: Make sure `python-multipart` is installed, as it allows dynamic PDF uploads via the frontend interface.*
+
+Run the backend:
+```bash
+python main.py
+```
 
 ### 2. Setup Frontend
+Open a new terminal window:
 ```bash
 cd frontend
 npm install
@@ -75,16 +86,12 @@ npm run dev
 ---
 
 ## 📜 Citations & Credits
-This project utilizes the following open-source models and libraries:
+Developed by **Team Delta Force**. 
+
+This project utilizes the following open-source frameworks:
 - **Meta Llama 3.1 8B**: Large Language Model for multilingual reasoning.
 - **HuggingFace paraphrase-multilingual-MiniLM-L12-v2**: Multilingual sentence embeddings.
 - **LangChain**: Framework for building context-aware RAG applications.
 - **ChromaDB**: High-performance local vector database.
-- **Lucide React**: Iconography for the user interface.
-
----
-
-## 📊 Expected Outcomes
-- **Multilingual performance**: Native responses in 10+ Indian languages.
-- **Usability**: Clean, responsive interface for mobile and web.
-- **Reliability**: Fallback to human support when information is missing.
+- **FastAPI / python-multipart**: High-speed asynchronous Python server parsing raw HTTP Form-Data uploads. 
+- **shadcn/ui & Lucide React**: Premium component library and iconography.

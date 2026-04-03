@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from langchain_community.document_loaders import PyPDFDirectoryLoader, TextLoader, DirectoryLoader
+from langchain_community.document_loaders import PyPDFDirectoryLoader, TextLoader, DirectoryLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -9,6 +9,7 @@ from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 from logger import log_chat
+import shutil
 
 load_dotenv()
 
@@ -47,6 +48,58 @@ def load_and_process_documents():
     print(f"Ingested {len(splits)} chunks into the database.")
     return vectorstore
 
+def process_single_document(file_path: str):
+    """Dynamically chunk and add a single new file into the existing vector store."""
+    if file_path.endswith('.pdf'):
+        loader = PyPDFLoader(file_path)
+    elif file_path.endswith('.txt'):
+        loader = TextLoader(file_path)
+    else:
+        return
+        
+    docs = loader.load()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    splits = text_splitter.split_documents(docs)
+    
+    if os.path.exists(CHROMA_DB_DIR) and len(os.listdir(CHROMA_DB_DIR)) > 0:
+        vectorstore = Chroma(persist_directory=CHROMA_DB_DIR, embedding_function=embeddings)
+        vectorstore.add_documents(splits)
+        vectorstore.persist()
+    else:
+        # If DB didn't exist, create it with this first document
+        vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings, persist_directory=CHROMA_DB_DIR)
+        vectorstore.persist()
+        
+    # Re-initialize the global chain with the completely updated retriever 
+    global rag_chain, retriever
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+    question_answer_chain = create_stuff_documents_chain(llm, prompt)
+    rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+    print(f"Added {file_path} chunks and refreshed memory.")
+
+def delete_document(filename: str):
+    """Deletes the document from disk and completely rebuilds the vector store to avoid ghosts."""
+    file_path = os.path.join(DATA_DIR, filename)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    
+    # Wipe the existing vector store database physically
+    if os.path.exists(CHROMA_DB_DIR):
+        shutil.rmtree(CHROMA_DB_DIR)
+        
+    global rag_chain, retriever
+    
+    # Rebuild from scratch if there are files left
+    vectorstore = get_retriever()
+    if vectorstore is not None:
+        retriever = vectorstore
+        question_answer_chain = create_stuff_documents_chain(llm, prompt)
+        rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+    else:
+        rag_chain = None
+        retriever = None
+    return True
+
 def get_retriever():
     """Retrieve or create the vector database"""
     if os.path.exists(CHROMA_DB_DIR) and len(os.listdir(CHROMA_DB_DIR)) > 0:
@@ -68,8 +121,11 @@ retriever = get_retriever()
 system_prompt = (
     "You are a helpful and polite virtual assistant for the university/college campus. "
     "You answer student queries related to fees, scholarships, policies, and schedules. "
-    "Respond to the student in the EXACT SAME LANGUAGE they used to ask the question. "
     "\n\n"
+    "### CRITICAL LANGUAGE INSTRUCTION ###\n"
+    "You MUST respond to the student EXCLUSIVELY in the following language: {target_language}. "
+    "Even if the student asks you a question in English, you MUST translate your answer and reply back in {target_language}. "
+    "Do NOT apologize for the language, just reply directly in {target_language}. "
     "### IMPORTANT: Support for Romanized Script ###\n"
     "Students may type regional languages using English characters (e.g., 'Fees kiti ahet?' for Marathi "
     "or 'Fees kitni hai?' for Hindi). You MUST recognize these transliterated inputs and respond "
@@ -106,13 +162,21 @@ def get_answer(query: str, language: str = "en") -> str:
     """Takes a query and returns the answer using RAG."""
     global rag_chain, retriever
     
+    # Map raw language codes to explicit language names so the LLM doesn't hallucinate
+    lang_map = {
+        "hi": "Hindi (हिंदी)", "mr": "Marathi (मराठी)", "bn": "Bengali (বাংলা)", "ta": "Tamil (தமிழ்)",
+        "te": "Telugu (తెలుగు)", "ml": "Malayalam (മലയാളം)", "kn": "Kannada (ಕನ್ನಡ)", "gu": "Gujarati (ગુજરાતી)",
+        "pa": "Punjabi (ਪੰਜਾਬੀ)", "ur": "Urdu (اردو)", "en": "English", "or": "Odia (ଓଡ଼ିଆ)", "as": "Assamese (অসমীয়া)"
+    }
+    lang_full_name = lang_map.get(language, "English")
+    
     # Try re-initializing if docs were added late
     if rag_chain is None:
         retriever = get_retriever()
         if retriever is None:
             # Fallback when no docs are uploaded yet
             response = llm.invoke([
-                ("system", system_prompt.replace("{context}", "No institutional documents have been uploaded yet.")),
+                ("system", system_prompt.replace("{context}", "No institutional documents have been uploaded yet.").replace("{target_language}", lang_full_name)),
                 ("human", query)
             ])
             log_chat(query, response.content, language)
@@ -122,7 +186,7 @@ def get_answer(query: str, language: str = "en") -> str:
         rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
     if rag_chain:
-        response = rag_chain.invoke({"input": query})
+        response = rag_chain.invoke({"input": query, "target_language": lang_full_name})
         answer = response["answer"]
         log_chat(query, answer, language)
         return answer

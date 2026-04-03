@@ -2,8 +2,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
+from fastapi import File, UploadFile, HTTPException
+import shutil
 from dotenv import load_dotenv
-from pipeline import get_answer, translate_text
+from pipeline import get_answer, translate_text, process_single_document, DATA_DIR, delete_document
 
 load_dotenv()
 
@@ -58,6 +60,41 @@ async def translate_endpoint(request: TranslateRequest):
     try:
         translated = translate_text(request.text, request.target_lang)
         return {"translated_text": translated}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/upload")
+async def upload_document(file: UploadFile = File(...)):
+    if not file.filename.endswith((".pdf", ".txt")):
+        raise HTTPException(status_code=400, detail="Only PDF and TXT files are allowed.")
+        
+    os.makedirs(DATA_DIR, exist_ok=True)
+    file_path = os.path.join(DATA_DIR, file.filename)
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # Dynamically ingest the new file into the vector DB
+        process_single_document(file_path)
+        return {"message": "File uploaded and processed successfully", "filename": file.filename}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to process document: {str(e)}")
+
+@app.get("/memory")
+async def get_memory():
+    """Returns a list of all documents currently ingested in the AI's memory."""
+    if not os.path.exists(DATA_DIR):
+        return {"files": []}
+        
+    files = [f for f in os.listdir(DATA_DIR) if f.endswith((".pdf", ".txt"))]
+    return {"files": files}
+
+@app.delete("/memory/{filename}")
+async def delete_memory_file(filename: str):
+    try:
+        delete_document(filename)
+        return {"message": "File deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
