@@ -52,10 +52,17 @@ graph TD
 ## 💻 Getting Started
 
 ### 📅 Current Versioning
-- **Last Updated:** April 3rd, 2026
+- **Last Updated:** April 4th, 2026
 - **Status:** Hackathon MVP Ready (Delta Force Edition)
 
-### 1. Setup Backend
+### 🌐 Live Production Demos
+The application is fully deployed and natively hosted 24/7 in the cloud. You can test it immediately without cloning the repository:
+- **Frontend UI (Vercel Edge Network):** `[Insert Your Live Vercel Link Here]`
+- **Backend API (Hugging Face 16GB Docker Space):** [https://huggingface.co/spaces/heyak/campus-backend](https://huggingface.co/spaces/heyak/campus-backend)
+
+---
+
+### 1. Local Development (Backend)
 ```bash
 cd backend
 python -m venv venv
